@@ -2,15 +2,37 @@ import CustomButton from "@/components/CustomButton";
 import InputField from "@/components/InputField";
 import OAuth from "@/components/OAuth";
 import { icons, images } from "@/constants";
-import { Link } from "expo-router";
-import { useState } from "react";
+import { useSignIn } from "@clerk/clerk-expo";
+import { Link, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
 import { Text, View, ScrollView, Image } from "react-native";
 
 const SignIn = () => {
+  const { signIn, setActive, isLoaded } = useSignIn();
+  const router = useRouter()
   const [form, setForm] = useState({
     email: "",
     password: "",
   });
+
+  const onSignInPress = useCallback(async () => {
+    if (!isLoaded) return;
+
+    try {
+      const signInAttempt = await signIn.create({
+        identifier: form.email,
+        password: form.password,
+      });
+      if (signInAttempt.status === "complete") {
+        await setActive({ session: signInAttempt.createdSessionId });
+        router.replace("/");
+      } else {
+        console.error(JSON.stringify(signInAttempt, null, 2));
+      }
+    } catch (err) {
+      console.error(JSON.stringify(err, null, 2));
+    }
+  }, [isLoaded, form.email, form.password]);
 
   return (
     <ScrollView>
@@ -34,7 +56,7 @@ const SignIn = () => {
             value={form.password}
             onChangeText={(value) => setForm({ ...form, password: value })}
           />
-          <CustomButton title="Sign In" className="mt-5" />
+          <CustomButton title="Sign In" className="mt-5" onPress={onSignInPress} />
           <OAuth />
           <Link href="/sign-up" className="text-lg text-center text-general-200 mt-10">
             <Text>Don`t have an account?</Text>
